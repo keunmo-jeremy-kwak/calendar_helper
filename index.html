@@ -41,7 +41,7 @@
   <!-- Google API -->
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
+  
   <script>
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
@@ -59,13 +59,20 @@
     }
 
     function gisLoaded() {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: async (tokenResponse) => {
-          if (tokenResponse && tokenResponse.access_token) {
-            document.getElementById("signin-area").style.display = "none";
-            document.getElementById("form-area").style.display = "block";
+  console.log("[✅] GIS 모듈 로드됨");
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (tokenResponse) => {
+      console.log("[✅] 로그인 성공!", tokenResponse);
+      document.getElementById("signin-area").style.display = "none";
+      document.getElementById("form-area").style.display = "block";
+    }
+  });
+
+  document.getElementById("login-btn").disabled = false;
+}
+
 
             // 사용자 정보 표시
             const token = gapi.client.getToken();
