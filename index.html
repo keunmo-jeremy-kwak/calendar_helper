@@ -37,7 +37,7 @@
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
     const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+    const SCOPES = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 
     let gapiInited = false;
     let tokenClient;
@@ -55,7 +55,7 @@
             document.getElementById("signin-area").style.display = "none";
             document.getElementById("form-area").style.display = "block";
           } catch {
-            console.warn("자료가 모아진 상황과 공개 검색 오류");
+            console.warn("사용자 정보 또는 캘린더 불러오기 실패");
           }
         } else {
           document.getElementById("login-btn").disabled = false;
@@ -76,6 +76,7 @@
         }
       });
 
+      document.getElementById("login-btn").disabled = false;
       document.getElementById("login-btn").addEventListener("click", () => {
         tokenClient.requestAccessToken({ prompt: 'consent' });
       });
@@ -83,7 +84,8 @@
 
     async function loadUserInfoAndCalendars() {
       const userInfo = await gapi.client.request({
-        path: 'https://people.googleapis.com/v1/people/me?personFields=names'
+        path: 'https://people.googleapis.com/v1/people/me',
+        params: { personFields: 'names' }
       });
       document.getElementById("username").textContent = userInfo.result.names[0].displayName;
 
