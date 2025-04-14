@@ -2,117 +2,159 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
   <title>📅 Google Calendar 등록 Helper</title>
   <style>
-    body {
-      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-      background: #f9fafb;
-      margin: 0;
-      padding: 40px 20px;
+    :root {
+      --input-bg: #fff;
+      --input-border: #ddd;
+      --input-radius: 10px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
     }
+
+    select, input, button {
+      -webkit-appearance: none;
+      appearance: none;
+      font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: var(--font);
+      background: #f7f9fc;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
     .container {
-      max-width: 420px;
       background: white;
+      width: 100%;
+      max-width: 400px;
+      margin: 20px;
       border-radius: 16px;
       padding: 24px;
-      margin: 0 auto;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     }
-    h2 {
-      font-size: 18px;
+
+    .container h2 {
+      font-weight: 600;
+      font-size: 1rem;
       text-align: left;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
-    .highlight {
-      font-weight: bold;
-      color: #222;
+
+    .form-group {
+      margin-bottom: 16px;
+      text-align: left;
     }
-    input, select {
-      width: 100%;
-      padding: 14px 16px;
-      margin-bottom: 14px;
-      font-size: 15px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      box-sizing: border-box;
-      font-family: inherit;
-    }
-    select {
-      padding-right: 36px;
-    }
-    input:focus, select:focus {
-      border-color: #3182f6;
-      outline: none;
-    }
+
     label {
+      font-size: 14px;
       display: block;
       margin-bottom: 6px;
-      margin-top: 16px;
-      font-size: 14px;
     }
+
+    select,
+    input[type="text"],
+    input[type="date"],
+    input[type="time"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--input-border);
+      border-radius: var(--input-radius);
+      font-size: 15px;
+      background-color: var(--input-bg);
+      box-sizing: border-box;
+    }
+
+    .time-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .time-group select,
+    .time-group input {
+      flex: 1;
+    }
+
     button {
       width: 100%;
-      padding: 14px;
-      font-size: 15px;
-      border: none;
-      border-radius: 12px;
-      background-color: #3182f6;
+      background: #2979ff;
       color: white;
-      font-weight: bold;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--input-radius);
+      padding: 14px;
+      margin-top: 8px;
       cursor: pointer;
     }
-    .sub-button {
-      margin-top: 10px;
+
+    .link-btn {
+      background: none;
+      color: #888;
       text-align: center;
-      font-size: 14px;
-      color: #666;
-      cursor: pointer;
+      font-size: 13px;
+      margin-top: 12px;
       text-decoration: underline;
+      cursor: pointer;
     }
-    .flex-time {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .flex-time select,
-    .flex-time input {
-      flex: 1;
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        padding: 16px;
+        border-radius: 12px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2><span class="highlight">Google 사용자</span> 님, 반가워요!</h2>
-
-    <div id="signin-area">
-      <button id="login-btn" disabled>Google 로그인</button>
+    <h2><strong>Google</strong> 사용자 님, 반가워요!</h2>
+    <div class="form-group">
+      <select id="calendar-list">
+        <option value="" disabled selected>프로젝트를 선택해주세요</option>
+      </select>
     </div>
 
-    <div id="form-area" style="display:none;">
-      <select id="calendar-list">
-        <option value="" disabled selected>📁 프로젝트를 선택해주세요</option>
-      </select>
+    <div class="form-group">
+      <input type="text" id="title" placeholder="일정 제목을 입력하세요" />
+    </div>
 
-      <input type="text" id="title" placeholder="일정 제목을 입력하세요">
-      <input type="date" id="date" placeholder="날짜를 선택해주세요">
+    <div class="form-group">
+      <input type="date" id="date" placeholder="날짜를 선택해주세요" />
+    </div>
 
-      <label for="startTime">시작 시간</label>
-      <div class="flex-time">
-        <select id="startAmPm">
-          <option>오전</option>
-          <option>오후</option>
+    <div class="form-group">
+      <label>시작 시간</label>
+      <div class="time-group">
+        <select id="startPeriod">
+          <option value="AM">오전</option>
+          <option value="PM">오후</option>
         </select>
-        <input type="text" id="startTime" placeholder="예: 0930">
+        <input type="text" id="startTime" placeholder="예: 09:30" />
       </div>
+    </div>
 
-      <label for="endTime">종료 시간</label>
-      <div class="flex-time">
-        <select id="endAmPm">
-          <option>오전</option>
-          <option>오후</option>
+    <div class="form-group">
+      <label>종료 시간</label>
+      <div class="time-group">
+        <select id="endPeriod">
+          <option value="AM">오전</option>
+          <option value="PM">오후</option>
         </select>
-        <input type="text" id="endTime" placeholder="예: 1030">
+        <input type="text" id="endTime" placeholder="예: 10:30" />
       </div>
+    </div>
 
       <button onclick="addEvent()">일정 등록하기</button>
       <div class="sub-button" onclick="logout()">Google 계정 변경 또는 로그아웃</div>
