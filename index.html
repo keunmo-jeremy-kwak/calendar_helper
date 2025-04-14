@@ -21,7 +21,7 @@
 <body>
   <h2>📆 Google Calendar 등록 Helper</h2>
   <div id="signin-area">
-    <button onclick="signIn()">🔐 Google Login</button>
+    <button id="login-btn" disabled>🔐 Google 로그인</button>
   </div>
   
   <div id="form-area" style="display:none;">
@@ -59,68 +59,61 @@
     }
 
     function gisLoaded() {
-  console.log("[✅] GIS 모듈 로드됨");
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: async (tokenResponse) => {
-      console.log("[✅] 로그인 성공!", tokenResponse);
-      document.getElementById("signin-area").style.display = "none";
-      document.getElementById("form-area").style.display = "block";
-    }
-  });
+      console.log("[✅] GIS 모듈 로드됨");
 
-  document.getElementById("login-btn").disabled = false;
-}
-
-
-            // 사용자 정보 표시
-            const token = gapi.client.getToken();
-            const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
-            document.getElementById("username").textContent = userInfo.result.name;
-
-            // 캘린더 리스트 불러오기
-            const res = await gapi.client.calendar.calendarList.list();
-            const select = document.getElementById("calendar-list");
-            res.result.items.forEach(cal => {
-              const opt = document.createElement("option");
-              opt.value = cal.id;
-              opt.textContent = cal.summary;
-              select.appendChild(opt);
-            });
-          }
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (tokenResponse) => {
+          console.log("[✅] 로그인 성공!", tokenResponse);
+          await loadUserInfoAndCalendars();
         }
       });
+
+      // 로그인 버튼 활성화
+      document.getElementById("login-btn").disabled = false;
     }
 
-    /*function signIn() {
-      if (gapiInited && tokenClient) tokenClient.requestAccessToken();
-    }*/
-
-    function signIn() {
+    // 전역 등록
+    window.signIn = function () {
       if (!tokenClient) {
         alert("Google 로그인 모듈이 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.");
-      return;
-  }
-
-  try {
-    tokenClient.requestAccessToken({ prompt: 'consent' });
-      } catch (e) {
-    alert("로그인 중 문제가 발생했습니다. 팝업 차단 여부를 확인해주세요.");
-  }
-      
-      const token = gapi.client.getToken();
-        if (token) {
-        // 이미 로그인된 세션 존재
-          document.getElementById("signin-area").style.display = "none";
-          document.getElementById("form-area").style.display = "block";
-      return;
+        return;
       }
-  
-      // 로그인 필요
-          tokenClient.requestAccessToken({ prompt: 'consent' }); // prompt: 'none' 사용 시 동의창 안 뜸
-}
 
+      const token = gapi.client.getToken();
+      if (token) {
+        document.getElementById("signin-area").style.display = "none";
+        document.getElementById("form-area").style.display = "block";
+        return;
+      }
+
+      try {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (e) {
+        alert("로그인 중 문제가 발생했습니다. 팝업 차단 여부를 확인해주세요.");
+      }
+    };
+
+    async function loadUserInfoAndCalendars() {
+      // UI 전환
+      document.getElementById("signin-area").style.display = "none";
+      document.getElementById("form-area").style.display = "block";
+
+      // 사용자 이름 표시
+      const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
+      document.getElementById("username").textContent = userInfo.result.name;
+
+      // 캘린더 리스트 로딩
+      const res = await gapi.client.calendar.calendarList.list();
+      const select = document.getElementById("calendar-list");
+      res.result.items.forEach(cal => {
+        const opt = document.createElement("option");
+        opt.value = cal.id;
+        opt.textContent = cal.summary;
+        select.appendChild(opt);
+      });
+    }
 
     async function addEvent() {
       const title = document.getElementById("title").value;
@@ -157,14 +150,10 @@
       document.getElementById("endTime").selectedIndex = 0;
     }
 
-    // 시간 옵션 생성
-
-
-  
     function createTimeOptions() {
       const start = document.getElementById("startTime");
       const end = document.getElementById("endTime");
-      
+
       for (let h = 0; h < 24; h++) {
         for (let m = 0; m < 60; m += 10) {
           const hour = h.toString().padStart(2, '0');
@@ -172,22 +161,22 @@
           const value = `${hour}:${minute}:00`;
 
           const option1 = document.createElement("option");
-          option1.value = `${hour}:${minute}:00`;
+          option1.value = value;
           option1.textContent = `${hour}:${minute}`;
           start.appendChild(option1);
 
           const option2 = document.createElement("option");
-          option2.value = `${hour}:${minute}:00`;
+          option2.value = value;
           option2.textContent = `${hour}:${minute}`;
           end.appendChild(option2);
         }
       }
-    } 
+    }
 
-
-
-    // 로딩 시 실행
-    window.onload = createTimeOptions;
+    window.onload = function () {
+      createTimeOptions();
+      document.getElementById("login-btn").addEventListener("click", signIn);
+    };
   </script>
 </body>
 </html>
