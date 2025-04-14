@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>📅 Google Calendar 등록 Helper</title>
+  <title>✩ Google Calendar 등록 Helper</title>
   <style>
     body {
       font-family: sans-serif;
@@ -21,20 +21,15 @@
 <body>
   <h2>📆 Google Calendar 등록 Helper</h2>
   <div id="signin-area">
-    <button id="login-btn" disabled>🔐 Google 로그인</button>
+    <button id="login-btn" disabled>Google 로그인</button>
   </div>
-
   <div id="form-area" style="display:none;">
     <p><strong>환영합니다, <span id="username"></span> 님!</strong></p>
-
     <select id="calendar-list"></select>
-
     <input type="text" id="title" placeholder="일정 제목">
     <input type="date" id="date">
-
     <select id="startTime"></select>
     <select id="endTime"></select>
-
     <button onclick="addEvent()">✅ 일정 추가</button>
   </div>
 
@@ -42,7 +37,7 @@
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
     const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+    const SCOPES = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 
     let gapiInited = false;
     let tokenClient;
@@ -51,15 +46,17 @@
       gapi.load('client', async () => {
         await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
         gapiInited = true;
-        console.log('[✅] gapiLoaded 완료');
 
-        // 자동 로그인 시도
-        const token = gapi.client.getToken();
-        if (token) {
-          console.log("[🔁] 기존 토큰 감지됨 - 자동 로그인 처리");
-          document.getElementById("signin-area").style.display = "none";
-          document.getElementById("form-area").style.display = "block";
-          await loadUserInfoAndCalendars();
+        const savedToken = localStorage.getItem('gToken');
+        if (savedToken) {
+          gapi.client.setToken(JSON.parse(savedToken));
+          try {
+            await loadUserInfoAndCalendars();
+            document.getElementById("signin-area").style.display = "none";
+            document.getElementById("form-area").style.display = "block";
+          } catch {
+            console.warn("자료가 모아진 상황과 공개 검색 오류");
+          }
         } else {
           document.getElementById("login-btn").disabled = false;
         }
@@ -67,47 +64,38 @@
     };
 
     const gisLoaded = () => {
-      console.log('[✅] gisLoaded 실행됨');
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (tokenResponse) => {
-          console.log('[✅] 로그인 성공', tokenResponse);
+          gapi.client.setToken(tokenResponse);
+          localStorage.setItem('gToken', JSON.stringify(tokenResponse));
+          await loadUserInfoAndCalendars();
           document.getElementById("signin-area").style.display = "none";
           document.getElementById("form-area").style.display = "block";
-          await loadUserInfoAndCalendars();
         }
       });
 
       document.getElementById("login-btn").addEventListener("click", () => {
-        const token = gapi.client.getToken();
-        if (token) {
-          console.log("[ℹ️] 이미 토큰 있음. UI 전환만");
-          document.getElementById("signin-area").style.display = "none";
-          document.getElementById("form-area").style.display = "block";
-        } else {
-          tokenClient.requestAccessToken({ prompt: 'consent' });
-        }
+        tokenClient.requestAccessToken({ prompt: 'consent' });
       });
     };
 
     async function loadUserInfoAndCalendars() {
-      try {
-        const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
-        document.getElementById("username").textContent = userInfo.result.name;
+      const userInfo = await gapi.client.request({
+        path: 'https://people.googleapis.com/v1/people/me?personFields=names'
+      });
+      document.getElementById("username").textContent = userInfo.result.names[0].displayName;
 
-        const res = await gapi.client.calendar.calendarList.list();
-        const select = document.getElementById("calendar-list");
-        select.innerHTML = ''; // 초기화
-        res.result.items.forEach(cal => {
-          const opt = document.createElement("option");
-          opt.value = cal.id;
-          opt.textContent = cal.summary;
-          select.appendChild(opt);
-        });
-      } catch (err) {
-        console.error("사용자 정보/캘린더 로딩 실패", err);
-      }
+      const res = await gapi.client.calendar.calendarList.list();
+      const select = document.getElementById("calendar-list");
+      select.innerHTML = '';
+      res.result.items.forEach(cal => {
+        const opt = document.createElement("option");
+        opt.value = cal.id;
+        opt.textContent = cal.summary;
+        select.appendChild(opt);
+      });
     }
 
     async function addEvent() {
@@ -127,10 +115,7 @@
       };
 
       try {
-        await gapi.client.calendar.events.insert({
-          calendarId,
-          resource: event
-        });
+        await gapi.client.calendar.events.insert({ calendarId, resource: event });
         alert("✅ 일정이 등록되었습니다!");
         resetForm();
       } catch (err) {
@@ -148,7 +133,6 @@
     function createTimeOptions() {
       const start = document.getElementById("startTime");
       const end = document.getElementById("endTime");
-
       for (let h = 0; h < 24; h++) {
         for (let m = 0; m < 60; m += 10) {
           const hour = h.toString().padStart(2, '0');
@@ -168,12 +152,9 @@
       }
     }
 
-    window.onload = () => {
-      createTimeOptions();
-    };
+    window.onload = createTimeOptions;
   </script>
 
-  <!-- ✅ script는 함수 정의 후 위치해야 함 -->
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
