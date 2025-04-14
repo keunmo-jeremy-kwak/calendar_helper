@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GPT AI 일정 등록</title>
+  <meta charset="utf-8" />
+</head>
+<body>
+  <h2>📅 일정 등록하기</h2>
+
+  <label>제목: <input type="text" id="title" /></label><br />
+  <label>설명: <input type="text" id="description" /></label><br />
+  <label>날짜: <input type="date" id="date" /></label><br />
+  <label>시작시간: <input type="time" id="start" /></label><br />
+  <label>종료시간: <input type="time" id="end" /></label><br />
+  <label>캘린더 선택: 
+    <select id="calendar">
+      <option value="">기본 캘린더</option>
+    </select>
+  </label><br /><br />
+
+  <button onclick="submitEvent()">✅ 일정 등록</button>
+
+  <p id="result"></p>
+
+  <script>
+    const BASE_URL = "https://script.google.com/macros/s/AKfycbwm2XMrYY7CvRrh1NZVmjgudpv4Yl8w2iSXJS8X-mZ53MwQErx7yet1VGofgh7dOYevEQ/exec";
+
+    // 캘린더 목록 불러오기
+    fetch(BASE_URL + "?mode=list")
+      .then(res => res.json())
+      .then(data => {
+        const select = document.getElementById("calendar");
+        data.forEach(cal => {
+          const option = document.createElement("option");
+          option.value = cal.name;
+          option.text = cal.name;
+          select.appendChild(option);
+        });
+      });
+
+    // 일정 등록 함수
+    function submitEvent() {
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      const date = document.getElementById("date").value;
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+      const calendar = document.getElementById("calendar").value;
+
+      if (!title || !date || !start || !end) {
+        alert("필수 항목을 입력해주세요.");
+        return;
+      }
+
+      const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}&start=${start}&end=${end}&calendar=${encodeURIComponent(calendar)}`;
+      fetch(url)
+        .then(res => res.text())
+        .then(msg => document.getElementById("result").innerText = msg)
+        .catch(err => {
+          document.getElementById("result").innerText = "❌ 오류 발생: " + err;
+        });
+    }
+  </script>
+</body>
+</html>
