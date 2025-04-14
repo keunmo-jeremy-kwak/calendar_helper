@@ -23,7 +23,7 @@
   <div id="signin-area">
     <button id="login-btn" disabled>🔐 Google 로그인</button>
   </div>
-  
+
   <div id="form-area" style="display:none;">
     <p><strong>환영합니다, <span id="username"></span> 님!</strong></p>
 
@@ -38,10 +38,7 @@
     <button onclick="addEvent()">✅ 일정 추가</button>
   </div>
 
-  <!-- Google API -->
-  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-  
+  <!-- JS 함수 정의 먼저 -->
   <script>
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
@@ -51,30 +48,44 @@
     let gapiInited = false;
     let tokenClient;
 
-    function gapiLoaded() {
+    const gapiLoaded = () => {
       gapi.load('client', async () => {
         await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
         gapiInited = true;
+        console.log('[✅] gapiLoaded 완료');
       });
-    }
+    };
 
-    function gisLoaded() {
-      console.log("[✅] GIS 모듈 로드됨");
-
+    const gisLoaded = () => {
+      console.log('[✅] gisLoaded 실행됨');
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (tokenResponse) => {
-          console.log("[✅] 로그인 성공!", tokenResponse);
+          console.log('[✅] 로그인 성공', tokenResponse);
           await loadUserInfoAndCalendars();
         }
       });
-
-      // 로그인 버튼 활성화
       document.getElementById("login-btn").disabled = false;
+    };
+
+    async function loadUserInfoAndCalendars() {
+      document.getElementById("signin-area").style.display = "none";
+      document.getElementById("form-area").style.display = "block";
+
+      const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
+      document.getElementById("username").textContent = userInfo.result.name;
+
+      const res = await gapi.client.calendar.calendarList.list();
+      const select = document.getElementById("calendar-list");
+      res.result.items.forEach(cal => {
+        const opt = document.createElement("option");
+        opt.value = cal.id;
+        opt.textContent = cal.summary;
+        select.appendChild(opt);
+      });
     }
 
-    // 전역 등록
     window.signIn = function () {
       if (!tokenClient) {
         alert("Google 로그인 모듈이 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.");
@@ -91,29 +102,9 @@
       try {
         tokenClient.requestAccessToken({ prompt: 'consent' });
       } catch (e) {
-        alert("로그인 중 문제가 발생했습니다. 팝업 차단 여부를 확인해주세요.");
+        alert("로그인 중 문제가 발생했습니다: " + e.message);
       }
     };
-
-    async function loadUserInfoAndCalendars() {
-      // UI 전환
-      document.getElementById("signin-area").style.display = "none";
-      document.getElementById("form-area").style.display = "block";
-
-      // 사용자 이름 표시
-      const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
-      document.getElementById("username").textContent = userInfo.result.name;
-
-      // 캘린더 리스트 로딩
-      const res = await gapi.client.calendar.calendarList.list();
-      const select = document.getElementById("calendar-list");
-      res.result.items.forEach(cal => {
-        const opt = document.createElement("option");
-        opt.value = cal.id;
-        opt.textContent = cal.summary;
-        select.appendChild(opt);
-      });
-    }
 
     async function addEvent() {
       const title = document.getElementById("title").value;
@@ -160,23 +151,27 @@
           const minute = m.toString().padStart(2, '0');
           const value = `${hour}:${minute}:00`;
 
-          const option1 = document.createElement("option");
-          option1.value = value;
-          option1.textContent = `${hour}:${minute}`;
-          start.appendChild(option1);
+          const opt1 = document.createElement("option");
+          opt1.value = value;
+          opt1.textContent = `${hour}:${minute}`;
+          start.appendChild(opt1);
 
-          const option2 = document.createElement("option");
-          option2.value = value;
-          option2.textContent = `${hour}:${minute}`;
-          end.appendChild(option2);
+          const opt2 = document.createElement("option");
+          opt2.value = value;
+          opt2.textContent = `${hour}:${minute}`;
+          end.appendChild(opt2);
         }
       }
     }
 
-    window.onload = function () {
+    window.onload = () => {
       createTimeOptions();
       document.getElementById("login-btn").addEventListener("click", signIn);
     };
   </script>
+
+  <!-- script는 항상 정의된 함수 뒤에! -->
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
 </html>
