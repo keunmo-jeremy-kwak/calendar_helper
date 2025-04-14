@@ -55,6 +55,7 @@
           try {
             await onLoginSuccess();
           } catch (e) {
+            console.error("[SESSION LOAD ERROR]", e);
             localStorage.removeItem('gToken');
             document.getElementById("login-btn").disabled = false;
           }
@@ -69,10 +70,18 @@
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (tokenResponse) => {
+          console.log('[✅ 토컨 응답]', tokenResponse);
+          console.log('[✅ 현재 토컨]', gapi.client.getToken());
+
           if (tokenResponse && tokenResponse.access_token) {
             gapi.client.setToken(tokenResponse);
             localStorage.setItem('gToken', JSON.stringify(tokenResponse));
-            await onLoginSuccess();
+            try {
+              await onLoginSuccess();
+            } catch (e) {
+              console.error("[onLoginSuccess 오류]", e);
+              alert("People API 호출에 실패했습니다.");
+            }
           } else {
             alert('🚨 로그인에 실패했습니다.');
           }
@@ -89,6 +98,8 @@
         resourceName: 'people/me',
         personFields: 'names,emailAddresses'
       });
+      console.log('[✅ People API 응답]', userInfo);
+
       const name = userInfo.result.names?.[0]?.displayName;
       const id = userInfo.result.resourceName?.split('/')[1];
       const email = userInfo.result.emailAddresses?.[0]?.value;
