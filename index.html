@@ -35,10 +35,20 @@
       border-radius: 12px;
       border: 1px solid #ddd;
       box-sizing: border-box;
+      font-family: inherit;
+    }
+    select {
+      padding-right: 36px;
     }
     input:focus, select:focus {
       border-color: #3182f6;
       outline: none;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      margin-top: 16px;
+      font-size: 14px;
     }
     button {
       width: 100%;
@@ -86,7 +96,7 @@
       <input type="text" id="title" placeholder="일정 제목을 입력하세요">
       <input type="date" id="date" placeholder="날짜를 선택해주세요">
 
-      <label>시작 시간</label>
+      <label for="startTime">시작 시간</label>
       <div class="flex-time">
         <select id="startAmPm">
           <option>오전</option>
@@ -95,7 +105,7 @@
         <input type="text" id="startTime" placeholder="예: 09:30">
       </div>
 
-      <label>종료 시간</label>
+      <label for="endTime">종료 시간</label>
       <div class="flex-time">
         <select id="endAmPm">
           <option>오전</option>
@@ -105,11 +115,10 @@
       </div>
 
       <button onclick="addEvent()">일정 등록하기</button>
-      <div class="sub-button" onclick="logout()">Google 계정 전환 / 로그아웃</div>
+      <div class="sub-button" onclick="logout()">Google 계정 변경 또는 로그아웃</div>
     </div>
   </div>
 
-  <!-- ✅ SCRIPT SECTION -->
   <script>
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
@@ -123,7 +132,6 @@
       gapi.load('client', async () => {
         await gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS });
         gapiInited = true;
-
         const savedToken = localStorage.getItem('gToken');
         if (savedToken) {
           gapi.client.setToken(JSON.parse(savedToken));
@@ -178,7 +186,6 @@
       const title = document.getElementById("title").value;
       const date = document.getElementById("date").value;
       const calendarId = document.getElementById("calendar-list").value;
-
       const start = convertTo24Hour(document.getElementById("startAmPm").value, document.getElementById("startTime").value);
       const end = convertTo24Hour(document.getElementById("endAmPm").value, document.getElementById("endTime").value);
 
@@ -200,19 +207,25 @@
     }
 
     function convertTo24Hour(ampm, time) {
-      const [h, m] = time.split(":").map(Number);
-      let hour = ampm === "오후" && h < 12 ? h + 12 : ampm === "오전" && h === 12 ? 0 : h;
-      return `${hour.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      time = time.replace(/[^0-9]/g, "");
+      if (time.length === 3) time = "0" + time;
+      if (time.length === 4) time = time.slice(0,2) + ":" + time.slice(2);
+      if (!time.includes(":")) return "00:00";
+      let [h, m] = time.split(":").map(Number);
+      if (ampm === "오후" && h < 12) h += 12;
+      if (ampm === "오전" && h === 12) h = 0;
+      return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
     }
 
     function logout() {
       gapi.client.setToken(null);
       localStorage.removeItem('gToken');
-      window.location.reload();
+      document.getElementById("signin-area").style.display = "block";
+      document.getElementById("form-area").style.display = "none";
+      document.querySelector("h2").innerHTML = "Google 계정으로 다시 로그인해주세요!";
     }
   </script>
 
-  <!-- ✅ Google API Scripts -->
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
