@@ -2,113 +2,218 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Google Calendar 등록</title>
+  <title>✩ Google Calendar 등록 Helper</title>
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-    }
     body {
-      background-color: #f7f9fb;
+      background-color: #f9fbfd;
+      font-family: 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 40px 0;
       display: flex;
       justify-content: center;
-      padding: 40px;
     }
     .container {
       background: white;
-      border-radius: 20px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-      padding: 30px 25px;
-      max-width: 420px;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
       width: 100%;
+      max-width: 460px;
     }
     h2 {
-      margin-bottom: 20px;
+      font-size: 18px;
+      margin-bottom: 24px;
       text-align: left;
-      font-size: 16px;
     }
-    select, input[type="text"], input[type="date"] {
+    select, input[type="text"], input[type="date"], input[type="time"] {
       width: 100%;
-      padding: 14px;
-      margin: 8px 0;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 15px;
-      background-color: #fafafa;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 16px;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      background-color: #f9f9f9;
     }
-    input::placeholder, select:invalid {
-      color: #aaa;
-    }
-    .flex-row {
+    .inline-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
+      align-items: center;
     }
-    .flex-row > div {
+    .inline-row select, .inline-row input[type="text"] {
       flex: 1;
     }
     button {
       width: 100%;
-      background-color: #2b7cff;
-      color: white;
-      padding: 14px;
+      padding: 12px;
       font-size: 16px;
       border: none;
-      border-radius: 10px;
-      margin-top: 20px;
+      border-radius: 8px;
+      background-color: #2979ff;
+      color: white;
+      font-weight: bold;
       cursor: pointer;
-      transition: background 0.2s;
+      margin-top: 16px;
     }
     button:disabled {
-      background-color: #ccc;
+      background-color: #cfd8dc;
     }
-    button:hover:enabled {
-      background-color: #1a63d7;
-    }
-    .label {
-      margin: 6px 0 4px;
+    .link-button {
+      margin-top: 12px;
+      background: none;
+      border: none;
+      color: #2979ff;
+      cursor: pointer;
       font-size: 14px;
-      text-align: left;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2><strong>Google</strong> 사용자 님, 반가워요!</h2>
-
-    <select id="calendar-list" required>
-      <option value="" disabled selected hidden>📁 프로젝트를 선택해주세요</option>
-    </select>
-
-    <input type="text" id="title" placeholder="일정 제목을 입력하세요">
-
-    <input type="date" id="date" placeholder="날짜를 선택해주세요" onfocus="(this.type='date')">
-
-    <div class="label">시작 시간</div>
-    <div class="flex-row">
-      <select id="startAmpm">
-        <option value="AM">오전</option>
-        <option value="PM">오후</option>
-      </select>
-      <input type="text" id="startTime" placeholder="예: 09:30">
+    <h2><strong>Google</strong> 사용자 님, 반가웠어요!</h2>
+    <div id="signin-area">
+      <button id="login-btn" disabled>Google 로그인</button>
     </div>
 
-    <div class="label">종료 시간</div>
-    <div class="flex-row">
-      <select id="endAmpm">
-        <option value="AM">오전</option>
-        <option value="PM">오후</option>
+    <div id="form-area" style="display:none;">
+      <select id="calendar-list">
+        <option disabled selected>📁 프로젝트를 선택해주세요</option>
       </select>
-      <input type="text" id="endTime" placeholder="예: 10:30">
+      <input type="text" id="title" placeholder="일정 제목을 입력해주세요">
+      <input type="date" id="date" placeholder="날짜를 선택해주세요">
+      <label>시작 시간</label>
+      <div class="inline-row">
+        <select id="startPeriod">
+          <option value="AM">오전</option>
+          <option value="PM">오후</option>
+        </select>
+        <input type="text" id="startTime" placeholder="예: 09:30">
+      </div>
+      <label>종료 시간</label>
+      <div class="inline-row">
+        <select id="endPeriod">
+          <option value="AM">오전</option>
+          <option value="PM">오후</option>
+        </select>
+        <input type="text" id="endTime" placeholder="예: 10:30">
+      </div>
+      <button onclick="addEvent()">일정 등록하기</button>
+      <button class="link-button" onclick="logout()">사용자 전환 / 세션 꼭기</button>
     </div>
-
-    <button id="submitBtn">일정 등록하기</button>
   </div>
 
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   <script>
-    // 이 영역에 기존 JavaScript 연동 로직 넣으면 됩니다.
-    document.getElementById('submitBtn').addEventListener('click', () => {
-      alert('🔔 일정이 등록되었습니다!');
-    });
+    const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
+    const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
+    const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
+    const SCOPES = 'openid profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+
+    let tokenClient;
+    let gapiInited = false;
+
+    const gapiLoaded = () => {
+      gapi.load('client', async () => {
+        await gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS });
+        gapiInited = true;
+
+        const savedToken = localStorage.getItem('gToken');
+        if (savedToken) {
+          gapi.client.setToken(JSON.parse(savedToken));
+          try {
+            await loadUserCalendars();
+            document.getElementById("signin-area").style.display = "none";
+            document.getElementById("form-area").style.display = "block";
+          } catch (error) {
+            console.warn("서식 로드 실패", error);
+          }
+        } else {
+          document.getElementById("login-btn").disabled = false;
+        }
+      });
+    };
+
+    const gisLoaded = () => {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (tokenResponse) => {
+          gapi.client.setToken(tokenResponse);
+          localStorage.setItem('gToken', JSON.stringify(tokenResponse));
+          await loadUserCalendars();
+          document.getElementById("signin-area").style.display = "none";
+          document.getElementById("form-area").style.display = "block";
+        }
+      });
+
+      document.getElementById("login-btn").disabled = false;
+      document.getElementById("login-btn").addEventListener("click", () => {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      });
+    };
+
+    async function loadUserCalendars() {
+      const res = await gapi.client.calendar.calendarList.list();
+      const select = document.getElementById("calendar-list");
+      select.innerHTML = '<option disabled selected>\ud83d\udcc1 \ud504\ub85c\uc81d\ud2b8\ub97c \uc120\ud0dd\ud574\uc8fc\uc138\uc694</option>';
+      res.result.items.forEach(cal => {
+        const opt = document.createElement("option");
+        opt.value = cal.id;
+        opt.textContent = cal.summary;
+        select.appendChild(opt);
+      });
+    }
+
+    async function addEvent() {
+      const title = document.getElementById("title").value;
+      const date = document.getElementById("date").value;
+      const calendarId = document.getElementById("calendar-list").value;
+      const startPeriod = document.getElementById("startPeriod").value;
+      const endPeriod = document.getElementById("endPeriod").value;
+      let startTime = document.getElementById("startTime").value;
+      let endTime = document.getElementById("endTime").value;
+
+      if (startPeriod === 'PM' && !startTime.startsWith('12')) {
+        const [h, m] = startTime.split(":");
+        startTime = (+h + 12) + ":" + m;
+      }
+      if (endPeriod === 'PM' && !endTime.startsWith('12')) {
+        const [h, m] = endTime.split(":");
+        endTime = (+h + 12) + ":" + m;
+      }
+
+      const start = new Date(`${date}T${startTime}:00`);
+      const end = new Date(`${date}T${endTime}:00`);
+
+      const event = {
+        summary: title,
+        start: { dateTime: start.toISOString(), timeZone: 'Asia/Seoul' },
+        end: { dateTime: end.toISOString(), timeZone: 'Asia/Seoul' }
+      };
+
+      try {
+        await gapi.client.calendar.events.insert({ calendarId, resource: event });
+        alert("✅ \uc77c\uc815\uc774 \ub4f1\ub85d\ub418\uc5c8\uc2b5\ub2c8\ub2e4!");
+        resetForm();
+      } catch (err) {
+        alert("⚠️ \uc624\ub958: " + err.message);
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("title").value = "";
+      document.getElementById("date").value = "";
+      document.getElementById("startTime").value = "";
+      document.getElementById("endTime").value = "";
+      document.getElementById("startPeriod").value = "AM";
+      document.getElementById("endPeriod").value = "AM";
+    }
+
+    function logout() {
+      localStorage.removeItem('gToken');
+      location.reload();
+    }
   </script>
 </body>
 </html>
