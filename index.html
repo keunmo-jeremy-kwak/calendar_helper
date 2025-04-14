@@ -24,15 +24,26 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.04);
       margin-bottom: 20px;
     }
-    input, select, button {
+    input[type="text"], input[type="date"], select, button {
       display: block;
       width: 100%;
-      padding: 14px;
+      padding: 14px 16px;
       margin-top: 12px;
       font-size: 16px;
       border: 1px solid #ddd;
       border-radius: 12px;
       box-sizing: border-box;
+      appearance: none;
+      background-color: #fff;
+    }
+    input::placeholder, select:invalid {
+      color: #999;
+    }
+    select {
+      background-image: url('data:image/svg+xml;charset=UTF-8,<svg fill="%23333" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 20px;
     }
     input:focus, select:focus, button:focus {
       outline: none;
@@ -57,6 +68,13 @@
       margin-bottom: 0;
       font-size: 16px;
     }
+    .time-row {
+      display: flex;
+      gap: 10px;
+    }
+    .time-row select, .time-row input[type="text"] {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -66,11 +84,30 @@
   </div>
   <div id="form-area" style="display:none;">
     <p><strong><span id="username">Google 사용자</span> 님, 반가워요!</strong></p>
-    <select id="calendar-list"></select>
+    <select id="calendar-list" required>
+      <option value="" disabled selected>📁 프로젝트를 선택해주세요</option>
+    </select>
     <input type="text" id="title" placeholder="일정 제목을 입력하세요">
     <input type="date" id="date">
-    <select id="startTime"></select>
-    <select id="endTime"></select>
+
+    <label style="margin-top:12px; text-align:left; display:block; font-size:14px; font-weight:500;">시작 시간</label>
+    <div class="time-row">
+      <select id="startAmPm">
+        <option value="AM">오전</option>
+        <option value="PM">오후</option>
+      </select>
+      <input type="text" id="startTime" placeholder="예: 09:30">
+    </div>
+
+    <label style="margin-top:12px; text-align:left; display:block; font-size:14px; font-weight:500;">종료 시간</label>
+    <div class="time-row">
+      <select id="endAmPm">
+        <option value="AM">오전</option>
+        <option value="PM">오후</option>
+      </select>
+      <input type="text" id="endTime" placeholder="예: 10:30">
+    </div>
+
     <button onclick="addEvent()">일정 등록하기</button>
   </div>
 
@@ -132,7 +169,7 @@
     async function loadUserCalendars() {
       const res = await gapi.client.calendar.calendarList.list();
       const select = document.getElementById("calendar-list");
-      select.innerHTML = '';
+      select.innerHTML = '<option value="" disabled selected>📁 프로젝트를 선택해주세요</option>';
       res.result.items.forEach(cal => {
         const opt = document.createElement("option");
         opt.value = cal.id;
@@ -141,12 +178,25 @@
       });
     }
 
+    function convertTo24Hour(hourStr, ampm) {
+      let [hour, minute] = hourStr.split(':');
+      hour = parseInt(hour);
+      if (ampm === 'PM' && hour < 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
+      return `${hour.toString().padStart(2, '0')}:${minute}:00`;
+    }
+
     async function addEvent() {
       const title = document.getElementById("title").value;
       const date = document.getElementById("date").value;
-      const startTime = document.getElementById("startTime").value;
-      const endTime = document.getElementById("endTime").value;
+      const startRaw = document.getElementById("startTime").value;
+      const endRaw = document.getElementById("endTime").value;
+      const startAmPm = document.getElementById("startAmPm").value;
+      const endAmPm = document.getElementById("endAmPm").value;
       const calendarId = document.getElementById("calendar-list").value;
+
+      const startTime = convertTo24Hour(startRaw, startAmPm);
+      const endTime = convertTo24Hour(endRaw, endAmPm);
 
       const start = new Date(`${date}T${startTime}`);
       const end = new Date(`${date}T${endTime}`);
@@ -169,33 +219,9 @@
     function resetForm() {
       document.getElementById("title").value = "";
       document.getElementById("date").value = "";
-      document.getElementById("startTime").selectedIndex = 0;
-      document.getElementById("endTime").selectedIndex = 0;
+      document.getElementById("startTime").value = "";
+      document.getElementById("endTime").value = "";
     }
-
-    function createTimeOptions() {
-      const start = document.getElementById("startTime");
-      const end = document.getElementById("endTime");
-      for (let h = 0; h < 24; h++) {
-        for (let m = 0; m < 60; m += 10) {
-          const hour = h.toString().padStart(2, '0');
-          const minute = m.toString().padStart(2, '0');
-          const value = `${hour}:${minute}:00`;
-
-          const opt1 = document.createElement("option");
-          opt1.value = value;
-          opt1.textContent = `${hour}:${minute}`;
-          start.appendChild(opt1);
-
-          const opt2 = document.createElement("option");
-          opt2.value = value;
-          opt2.textContent = `${hour}:${minute}`;
-          end.appendChild(opt2);
-        }
-      }
-    }
-
-    window.onload = createTimeOptions;
   </script>
 
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
