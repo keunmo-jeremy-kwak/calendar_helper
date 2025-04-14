@@ -91,6 +91,17 @@
     }*/
 
     function signIn() {
+      if (!tokenClient) {
+        alert("Google 로그인 모듈이 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.");
+      return;
+  }
+
+  try {
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (e) {
+    alert("로그인 중 문제가 발생했습니다. 팝업 차단 여부를 확인해주세요.");
+  }
+      
       const token = gapi.client.getToken();
         if (token) {
         // 이미 로그인된 세션 존재
