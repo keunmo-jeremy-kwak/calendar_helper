@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>📅 GPT 캘린더 연동</title>
+  <title>📅 Google Calendar 등록 Helper</title>
   <style>
     body {
       font-family: sans-serif;
@@ -10,7 +10,7 @@
       margin: 40px auto;
       text-align: center;
     }
-    input, button {
+    input, select, button {
       padding: 8px;
       margin: 6px;
       width: 90%;
@@ -19,89 +19,157 @@
   </style>
 </head>
 <body>
-  <h2>📆 Google Calendar 연동</h2>
+  <h2>📆 Google Calendar 등록 Helper</h2>
   <div id="signin-area">
-    <button onclick="signIn()">🔐 Google로 로그인</button>
+    <button onclick="signIn()">🔐 Google Login</button>
   </div>
   
   <div id="form-area" style="display:none;">
     <p><strong>환영합니다, <span id="username"></span> 님!</strong></p>
+
+    <select id="calendar-list"></select>
+
     <input type="text" id="title" placeholder="일정 제목">
     <input type="date" id="date">
-    <input type="time" id="startTime">
-    <input type="time" id="endTime">
-    <button onclick="addEvent()">✅ Google Calendar에 일정 추가</button>
+
+    <select id="startTime"></select>
+    <select id="endTime"></select>
+
+    <button onclick="addEvent()">✅ 일정 추가</button>
   </div>
 
-  <script src="https://apis.google.com/js/api.js"></script>
-  
+  <!-- Google API -->
+  <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
   <script>
-  const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
-  const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
-  const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-  const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+    const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
+    const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
+    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+    const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 
-  let gapiInited = false;
-  let tokenClient;
+    let gapiInited = false;
+    let tokenClient;
 
-  function gapiLoaded() {
-    gapi.load('client', async () => {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [DISCOVERY_DOC]
+    function gapiLoaded() {
+      gapi.load('client', async () => {
+        await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
+        gapiInited = true;
       });
-      gapiInited = true;
-    });
-  }
+    }
 
-  function gisLoaded() {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (tokenResponse) => {
-        if (tokenResponse && tokenResponse.access_token) {
+    function gisLoaded() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            document.getElementById("signin-area").style.display = "none";
+            document.getElementById("form-area").style.display = "block";
+
+            // 사용자 정보 표시
+            const token = gapi.client.getToken();
+            const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
+            document.getElementById("username").textContent = userInfo.result.name;
+
+            // 캘린더 리스트 불러오기
+            const res = await gapi.client.calendar.calendarList.list();
+            const select = document.getElementById("calendar-list");
+            res.result.items.forEach(cal => {
+              const opt = document.createElement("option");
+              opt.value = cal.id;
+              opt.textContent = cal.summary;
+              select.appendChild(opt);
+            });
+          }
+        }
+      });
+    }
+
+    /*function signIn() {
+      if (gapiInited && tokenClient) tokenClient.requestAccessToken();
+    }*/
+
+    function signIn() {
+      const token = gapi.client.getToken();
+        if (token) {
+        // 이미 로그인된 세션 존재
           document.getElementById("signin-area").style.display = "none";
           document.getElementById("form-area").style.display = "block";
+      return;
+      }
+  
+      // 로그인 필요
+          tokenClient.requestAccessToken({ prompt: '' }); // prompt: 'none' 사용 시 동의창 안 뜸
+}
+
+
+    async function addEvent() {
+      const title = document.getElementById("title").value;
+      const date = document.getElementById("date").value;
+      const startTime = document.getElementById("startTime").value;
+      const endTime = document.getElementById("endTime").value;
+      const calendarId = document.getElementById("calendar-list").value;
+
+      const start = new Date(`${date}T${startTime}`);
+      const end = new Date(`${date}T${endTime}`);
+
+      const event = {
+        summary: title,
+        start: { dateTime: start.toISOString(), timeZone: 'Asia/Seoul' },
+        end: { dateTime: end.toISOString(), timeZone: 'Asia/Seoul' }
+      };
+
+      try {
+        await gapi.client.calendar.events.insert({
+          calendarId,
+          resource: event
+        });
+        alert("✅ 일정이 등록되었습니다!");
+        resetForm();
+      } catch (err) {
+        alert("⚠️ 오류: " + err.message);
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("title").value = "";
+      document.getElementById("date").value = "";
+      document.getElementById("startTime").selectedIndex = 0;
+      document.getElementById("endTime").selectedIndex = 0;
+    }
+
+    // 시간 옵션 생성
+
+
+  
+    function createTimeOptions() {
+      const start = document.getElementById("startTime");
+      const end = document.getElementById("endTime");
+      
+      for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 10) {
+          const hour = h.toString().padStart(2, '0');
+          const minute = m.toString().padStart(2, '0');
+          const value = `${hour}:${minute}:00`;
+
+          const option1 = document.createElement("option");
+          option1.value = `${hour}:${minute}:00`;
+          option1.textContent = `${hour}:${minute}`;
+          start.appendChild(option1);
+
+          const option2 = document.createElement("option");
+          option2.value = `${hour}:${minute}:00`;
+          option2.textContent = `${hour}:${minute}`;
+          end.appendChild(option2);
         }
       }
-    });
-  }
+    } 
 
-  function signIn() {
-    if (gapiInited && tokenClient) {
-      tokenClient.requestAccessToken();
-    }
-  }
 
-  async function addEvent() {
-    const title = document.getElementById("title").value;
-    const date = document.getElementById("date").value;
-    const startTime = document.getElementById("startTime").value;
-    const endTime = document.getElementById("endTime").value;
 
-    const start = new Date(`${date}T${startTime}:00`);
-    const end = new Date(`${date}T${endTime}:00`);
-
-    const event = {
-      summary: title,
-      start: { dateTime: start.toISOString(), timeZone: 'Asia/Seoul' },
-      end: { dateTime: end.toISOString(), timeZone: 'Asia/Seoul' }
-    };
-
-    try {
-      const response = await gapi.client.calendar.events.insert({
-        calendarId: 'primary',
-        resource: event
-      });
-      alert("✅ 일정이 등록되었습니다!");
-    } catch (err) {
-      alert("⚠️ 오류: " + err.message);
-    }
-  }
-</script>
-
-<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-  
+    // 로딩 시 실행
+    window.onload = createTimeOptions;
+  </script>
 </body>
 </html>
