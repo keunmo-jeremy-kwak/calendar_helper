@@ -38,7 +38,6 @@
     <button onclick="addEvent()">✅ 일정 추가</button>
   </div>
 
-  <!-- JS 함수 정의 먼저 -->
   <script>
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
@@ -53,6 +52,17 @@
         await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
         gapiInited = true;
         console.log('[✅] gapiLoaded 완료');
+
+        // 자동 로그인 시도
+        const token = gapi.client.getToken();
+        if (token) {
+          console.log("[🔁] 기존 토큰 감지됨 - 자동 로그인 처리");
+          document.getElementById("signin-area").style.display = "none";
+          document.getElementById("form-area").style.display = "block";
+          await loadUserInfoAndCalendars();
+        } else {
+          document.getElementById("login-btn").disabled = false;
+        }
       });
     };
 
@@ -63,48 +73,42 @@
         scope: SCOPES,
         callback: async (tokenResponse) => {
           console.log('[✅] 로그인 성공', tokenResponse);
+          document.getElementById("signin-area").style.display = "none";
+          document.getElementById("form-area").style.display = "block";
           await loadUserInfoAndCalendars();
         }
       });
-      document.getElementById("login-btn").disabled = false;
+
+      document.getElementById("login-btn").addEventListener("click", () => {
+        const token = gapi.client.getToken();
+        if (token) {
+          console.log("[ℹ️] 이미 토큰 있음. UI 전환만");
+          document.getElementById("signin-area").style.display = "none";
+          document.getElementById("form-area").style.display = "block";
+        } else {
+          tokenClient.requestAccessToken({ prompt: 'consent' });
+        }
+      });
     };
 
     async function loadUserInfoAndCalendars() {
-      document.getElementById("signin-area").style.display = "none";
-      document.getElementById("form-area").style.display = "block";
-
-      const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
-      document.getElementById("username").textContent = userInfo.result.name;
-
-      const res = await gapi.client.calendar.calendarList.list();
-      const select = document.getElementById("calendar-list");
-      res.result.items.forEach(cal => {
-        const opt = document.createElement("option");
-        opt.value = cal.id;
-        opt.textContent = cal.summary;
-        select.appendChild(opt);
-      });
-    }
-
-    window.signIn = function () {
-      if (!tokenClient) {
-        alert("Google 로그인 모듈이 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.");
-        return;
-      }
-
-      const token = gapi.client.getToken();
-      if (token) {
-        document.getElementById("signin-area").style.display = "none";
-        document.getElementById("form-area").style.display = "block";
-        return;
-      }
-
       try {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      } catch (e) {
-        alert("로그인 중 문제가 발생했습니다: " + e.message);
+        const userInfo = await gapi.client.request({ path: 'https://www.googleapis.com/oauth2/v3/userinfo' });
+        document.getElementById("username").textContent = userInfo.result.name;
+
+        const res = await gapi.client.calendar.calendarList.list();
+        const select = document.getElementById("calendar-list");
+        select.innerHTML = ''; // 초기화
+        res.result.items.forEach(cal => {
+          const opt = document.createElement("option");
+          opt.value = cal.id;
+          opt.textContent = cal.summary;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("사용자 정보/캘린더 로딩 실패", err);
       }
-    };
+    }
 
     async function addEvent() {
       const title = document.getElementById("title").value;
@@ -166,11 +170,10 @@
 
     window.onload = () => {
       createTimeOptions();
-      document.getElementById("login-btn").addEventListener("click", signIn);
     };
   </script>
 
-  <!-- script는 항상 정의된 함수 뒤에! -->
+  <!-- ✅ script는 함수 정의 후 위치해야 함 -->
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
