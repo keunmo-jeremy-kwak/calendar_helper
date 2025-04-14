@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>✩ Google Calendar 등록 Helper</title>
+  <title>📅 Google Calendar 등록 Helper</title>
   <style>
     body {
       font-family: sans-serif;
@@ -40,29 +40,19 @@
       'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest',
       'https://people.googleapis.com/$discovery/rest?version=v1'
     ];
-    const SCOPES = 'openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+    const SCOPES = 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.profile';
 
-    let gapiInited = false;
     let tokenClient;
+    let gapiInited = false;
 
     const gapiLoaded = () => {
       gapi.load('client', async () => {
-        await gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS });
+        await gapi.client.init({
+          apiKey: API_KEY,
+          discoveryDocs: DISCOVERY_DOCS
+        });
         gapiInited = true;
-
-        const savedToken = localStorage.getItem('gToken');
-        if (savedToken) {
-          gapi.client.setToken(JSON.parse(savedToken));
-          try {
-            await loadUserInfoAndCalendars();
-            document.getElementById("signin-area").style.display = "none";
-            document.getElementById("form-area").style.display = "block";
-          } catch (error) {
-            console.warn("사용자 정보 또는 캘린더 불러오기 실패", error);
-          }
-        } else {
-          document.getElementById("login-btn").disabled = false;
-        }
+        document.getElementById("login-btn").disabled = false;
       });
     };
 
@@ -73,23 +63,16 @@
         callback: async (tokenResponse) => {
           gapi.client.setToken(tokenResponse);
           localStorage.setItem('gToken', JSON.stringify(tokenResponse));
-          try {
-            await loadUserInfoAndCalendars();
-            document.getElementById("signin-area").style.display = "none";
-            document.getElementById("form-area").style.display = "block";
-          } catch (error) {
-            alert("사용자 정보 또는 캘린더 불러오기 실패: " + error.message);
-          }
+          await onLoginSuccess();
         }
       });
 
-      document.getElementById("login-btn").disabled = false;
       document.getElementById("login-btn").addEventListener("click", () => {
         tokenClient.requestAccessToken({ prompt: 'consent' });
       });
     };
 
-    async function loadUserInfoAndCalendars() {
+    async function onLoginSuccess() {
       try {
         const userInfo = await gapi.client.people.people.get({
           resourceName: 'people/me',
@@ -97,25 +80,28 @@
         });
 
         const name = userInfo.result.names?.[0]?.displayName;
-        const id = userInfo.result.resourceName?.split('/').pop();
+        const id = userInfo.result.resourceName?.split('/')[1];
         const email = userInfo.result.emailAddresses?.[0]?.value;
 
-        const fallbackName = name || id || email || "Google 사용자";
-        document.getElementById("username").textContent = fallbackName;
-      } catch (error) {
-        console.warn("사용자 이름 정보를 불러오지 못했습니다:", error);
-        document.getElementById("username").textContent = "사용자";
-      }
+        const display = name || id || email || "Google 사용자";
+        document.getElementById("username").textContent = display;
 
-      const res = await gapi.client.calendar.calendarList.list();
-      const select = document.getElementById("calendar-list");
-      select.innerHTML = '';
-      res.result.items.forEach(cal => {
-        const opt = document.createElement("option");
-        opt.value = cal.id;
-        opt.textContent = cal.summary;
-        select.appendChild(opt);
-      });
+        const res = await gapi.client.calendar.calendarList.list();
+        const select = document.getElementById("calendar-list");
+        select.innerHTML = '';
+        res.result.items.forEach(cal => {
+          const opt = document.createElement("option");
+          opt.value = cal.id;
+          opt.textContent = cal.summary;
+          select.appendChild(opt);
+        });
+
+        document.getElementById("signin-area").style.display = "none";
+        document.getElementById("form-area").style.display = "block";
+      } catch (err) {
+        alert("⚠️ 사용자 정보 또는 캘린더 목록을 불러오는 데 실패했습니다.");
+        console.error(err);
+      }
     }
 
     async function addEvent() {
@@ -155,19 +141,15 @@
       const end = document.getElementById("endTime");
       for (let h = 0; h < 24; h++) {
         for (let m = 0; m < 60; m += 10) {
-          const hour = h.toString().padStart(2, '0');
-          const minute = m.toString().padStart(2, '0');
-          const value = `${hour}:${minute}:00`;
+          const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+          const label = timeStr.slice(0, 5);
 
-          const opt1 = document.createElement("option");
-          opt1.value = value;
-          opt1.textContent = `${hour}:${minute}`;
-          start.appendChild(opt1);
-
-          const opt2 = document.createElement("option");
-          opt2.value = value;
-          opt2.textContent = `${hour}:${minute}`;
-          end.appendChild(opt2);
+          [start, end].forEach(select => {
+            const opt = document.createElement("option");
+            opt.value = timeStr;
+            opt.textContent = label;
+            select.appendChild(opt);
+          });
         }
       }
     }
