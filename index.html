@@ -2,45 +2,85 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>✩ Google Calendar 등록 Helper</title>
+  <title>📅 Google Calendar 일정 도우미</title>
   <style>
     body {
-      font-family: sans-serif;
-      max-width: 500px;
-      margin: 40px auto;
-      text-align: center;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #f9fafb;
+      color: #222;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    #signin-area, #form-area {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
     }
     input, select, button {
-      padding: 8px;
-      margin: 6px;
-      width: 90%;
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus, button:focus {
+      outline: none;
+      border-color: #3182f6;
+    }
+    button {
+      background: #3182f6;
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    p {
+      margin-bottom: 0;
       font-size: 16px;
     }
   </style>
 </head>
 <body>
-  <h2>🗓 Google Calendar 등록 Helper</h2>
+  <h2>캘린더 일정 등록 도우미</h2>
   <div id="signin-area">
-    <button id="login-btn" disabled>🔐 Google 로그인</button>
+    <button id="login-btn" disabled>Google 로그인하고 시작하기</button>
   </div>
   <div id="form-area" style="display:none;">
-    <p><strong>환영합니다, <span id="username">...</span> 님!</strong></p>
+    <p><strong><span id="username">Google 사용자</span> 님, 반가워요!</strong></p>
     <select id="calendar-list"></select>
-    <input type="text" id="title" placeholder="일정 제목">
+    <input type="text" id="title" placeholder="일정 제목을 입력하세요">
     <input type="date" id="date">
     <select id="startTime"></select>
     <select id="endTime"></select>
-    <button onclick="addEvent()">✅ 일정 추가</button>
+    <button onclick="addEvent()">일정 등록하기</button>
   </div>
 
   <script>
     const CLIENT_ID = '106953701963-fpu3ouqhblfadj81geaep55apbi6ghk6.apps.googleusercontent.com';
     const API_KEY = 'AIzaSyBNQTPJC_FoqKKCwO0QHxyzPkdVWuTGyr0';
     const DISCOVERY_DOCS = [
-      'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest',
-      'https://people.googleapis.com/$discovery/rest?version=v1'
+      'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'
     ];
-    const SCOPES = 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.profile';
+    const SCOPES = 'openid profile email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 
     let tokenClient;
     let gapiInited = false;
@@ -49,15 +89,16 @@
       gapi.load('client', async () => {
         await gapi.client.init({ apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS });
         gapiInited = true;
+
         const savedToken = localStorage.getItem('gToken');
         if (savedToken) {
           gapi.client.setToken(JSON.parse(savedToken));
           try {
-            await onLoginSuccess();
-          } catch (e) {
-            console.error("[SESSION LOAD ERROR]", e);
-            localStorage.removeItem('gToken');
-            document.getElementById("login-btn").disabled = false;
+            await loadUserCalendars();
+            document.getElementById("signin-area").style.display = "none";
+            document.getElementById("form-area").style.display = "block";
+          } catch (error) {
+            console.warn("초기 세션 로드 실패", error);
           }
         } else {
           document.getElementById("login-btn").disabled = false;
@@ -70,43 +111,25 @@
         client_id: CLIENT_ID,
         scope: SCOPES,
         callback: async (tokenResponse) => {
-          console.log('[✅ 토컨 응답]', tokenResponse);
-          console.log('[✅ 현재 토컨]', gapi.client.getToken());
-
-          if (tokenResponse && tokenResponse.access_token) {
-            gapi.client.setToken(tokenResponse);
-            localStorage.setItem('gToken', JSON.stringify(tokenResponse));
-            try {
-              await onLoginSuccess();
-            } catch (e) {
-              console.error("[onLoginSuccess 오류]", e);
-              alert("People API 호출에 실패했습니다.");
-            }
-          } else {
-            alert('🚨 로그인에 실패했습니다.');
+          gapi.client.setToken(tokenResponse);
+          localStorage.setItem('gToken', JSON.stringify(tokenResponse));
+          try {
+            await loadUserCalendars();
+            document.getElementById("signin-area").style.display = "none";
+            document.getElementById("form-area").style.display = "block";
+          } catch (error) {
+            alert("캘린더 목록을 불러오지 못했어요: " + error.message);
           }
         }
       });
 
+      document.getElementById("login-btn").disabled = false;
       document.getElementById("login-btn").addEventListener("click", () => {
         tokenClient.requestAccessToken({ prompt: 'consent' });
       });
     };
 
-    async function onLoginSuccess() {
-      const userInfo = await gapi.client.people.people.get({
-        resourceName: 'people/me',
-        personFields: 'names,emailAddresses'
-      });
-      console.log('[✅ People API 응답]', userInfo);
-
-      const name = userInfo.result.names?.[0]?.displayName;
-      const id = userInfo.result.resourceName?.split('/')[1];
-      const email = userInfo.result.emailAddresses?.[0]?.value;
-      const display = name || id || email || "Google 사용자";
-
-      document.getElementById("username").textContent = display;
-
+    async function loadUserCalendars() {
       const res = await gapi.client.calendar.calendarList.list();
       const select = document.getElementById("calendar-list");
       select.innerHTML = '';
@@ -116,9 +139,6 @@
         opt.textContent = cal.summary;
         select.appendChild(opt);
       });
-
-      document.getElementById("signin-area").style.display = "none";
-      document.getElementById("form-area").style.display = "block";
     }
 
     async function addEvent() {
@@ -139,10 +159,10 @@
 
       try {
         await gapi.client.calendar.events.insert({ calendarId, resource: event });
-        alert("✅ 일정이 등록되었습니다!");
+        alert("📅 일정이 등록되었어요!");
         resetForm();
       } catch (err) {
-        alert("⚠️ 오류: " + err.message);
+        alert("⚠️ 일정 등록에 실패했어요: " + err.message);
       }
     }
 
@@ -158,15 +178,19 @@
       const end = document.getElementById("endTime");
       for (let h = 0; h < 24; h++) {
         for (let m = 0; m < 60; m += 10) {
-          const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
-          const label = timeStr.slice(0, 5);
+          const hour = h.toString().padStart(2, '0');
+          const minute = m.toString().padStart(2, '0');
+          const value = `${hour}:${minute}:00`;
 
-          [start, end].forEach(select => {
-            const opt = document.createElement("option");
-            opt.value = timeStr;
-            opt.textContent = label;
-            select.appendChild(opt);
-          });
+          const opt1 = document.createElement("option");
+          opt1.value = value;
+          opt1.textContent = `${hour}:${minute}`;
+          start.appendChild(opt1);
+
+          const opt2 = document.createElement("option");
+          opt2.value = value;
+          opt2.textContent = `${hour}:${minute}`;
+          end.appendChild(opt2);
         }
       }
     }
