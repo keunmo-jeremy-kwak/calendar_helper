@@ -1,26 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <title>GPT AI 일정 등록</title>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
+  <title>GPT 일정 등록</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom right, #f0f4f8, #e6ecf1);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px 24px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      font-size: 20px;
+      text-align: center;
+      margin-bottom: 24px;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #444;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    #result {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 14px;
+      color: #1e293b;
+    }
+  </style>
 </head>
 <body>
-  <h2>📅 일정 등록하기</h2>
 
-  <label>제목: <input type="text" id="title" /></label><br />
-  <label>설명: <input type="text" id="description" /></label><br />
-  <label>날짜: <input type="date" id="date" /></label><br />
-  <label>시작시간: <input type="time" id="start" /></label><br />
-  <label>종료시간: <input type="time" id="end" /></label><br />
-  <label>캘린더 선택: 
-    <select id="calendar">
-      <option value="">기본 캘린더</option>
-    </select>
-  </label><br /><br />
+  <div class="card">
+    <h2>📅 GPT 일정 등록</h2>
 
-  <button onclick="submitEvent()">✅ 일정 등록</button>
+    <label>제목
+      <input type="text" id="title" placeholder="일정 제목을 입력해주세요" />
+    </label>
 
-  <p id="result"></p>
+    <label>설명
+      <input type="text" id="description" placeholder="추가 설명 (선택)" />
+    </label>
+
+    <label>날짜
+      <input type="date" id="date" />
+    </label>
+
+    <label>시작 시간
+      <input type="time" id="start" />
+    </label>
+
+    <label>종료 시간
+      <input type="time" id="end" />
+    </label>
+
+    <label>캘린더 선택
+      <select id="calendar">
+        <option value="">기본 캘린더</option>
+      </select>
+    </label>
+
+    <button onclick="submitEvent()">✅ 일정 등록</button>
+    <p id="result"></p>
+  </div>
 
   <script>
     const BASE_URL = "https://script.google.com/macros/s/AKfycbwm2XMrYY7CvRrh1NZVmjgudpv4Yl8w2iSXJS8X-mZ53MwQErx7yet1VGofgh7dOYevEQ/exec";
@@ -61,5 +148,6 @@
         });
     }
   </script>
+
 </body>
 </html>
