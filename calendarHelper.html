@@ -49,10 +49,21 @@
       font-size: 14px;
       box-sizing: border-box;
     }
+
     input[type="date"]::-webkit-calendar-picker-indicator,
     input[type="time"]::-webkit-calendar-picker-indicator {
-      filter: brightness(3); /* 밝은 아이콘 */
+      filter: invert(1); /* 흰색 아이콘 */
     }
+
+    select {
+      padding-right: 40px; /* 우측 여백 확보 */
+      appearance: none;
+      background-image: url('data:image/svg+xml;utf8,<svg fill="%23ccc" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+    }
+
     button {
       margin-top: 24px;
       width: 100%;
