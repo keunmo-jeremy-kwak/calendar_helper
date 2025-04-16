@@ -2,111 +2,169 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>GPT 일정 등록</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📅 GPT 일정 등록</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(to bottom right, #f0f4f8, #e6ecf1);
-      font-family: 'Segoe UI', sans-serif;
+      background-color: #2b2d31;
+      font-family: 'Inter', sans-serif;
+      color: #f2f3f5;
       display: flex;
-      align-items: center;
       justify-content: center;
-      height: 100vh;
+      align-items: center;
+      min-height: 100vh;
     }
 
     .card {
-      background: white;
-      border-radius: 16px;
+      background-color: #313338;
+      border-radius: 12px;
       padding: 32px 24px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
     }
 
     h2 {
-      font-size: 20px;
-      text-align: center;
+      font-size: 18px;
       margin-bottom: 24px;
-      color: #333;
+      font-weight: 600;
+      color: #f2f3f5;
+      text-align: center;
     }
 
     label {
-      display: block;
-      margin-bottom: 12px;
       font-size: 14px;
-      color: #444;
+      margin-top: 14px;
+      display: block;
+      color: #b5bac1;
     }
 
     input, select {
+      margin-top: 6px;
       width: 100%;
-      padding: 10px 12px;
+      padding: 10px 14px;
       font-size: 14px;
-      border: 1px solid #ccc;
+      border: 1px solid #444;
+      background-color: #1e1f22;
+      color: #f2f3f5;
       border-radius: 8px;
-      margin-top: 4px;
       box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .time-wrap {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .time-wrap select,
+    .time-wrap input {
+      flex: 1;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
     }
 
     button {
-      margin-top: 20px;
+      margin-top: 24px;
       width: 100%;
-      background: #3b82f6;
+      background-color: #5865f2;
       color: white;
       border: none;
       padding: 12px;
-      font-size: 16px;
+      font-size: 15px;
       border-radius: 8px;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: 0.2s ease;
     }
 
     button:hover {
-      background: #2563eb;
+      background-color: #4752c4;
     }
 
     #result {
       margin-top: 16px;
-      text-align: center;
       font-size: 14px;
-      color: #1e293b;
+      text-align: center;
+      color: #f2f3f5;
+    }
+
+    .calendar-preview {
+      margin-top: 32px;
+    }
+
+    .calendar-preview h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #f2f3f5;
+    }
+
+    .calendar-preview ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .calendar-preview li {
+      padding: 6px 0;
+      font-size: 13px;
+      color: #b5bac1;
+      border-bottom: 1px solid #3a3c41;
     }
   </style>
 </head>
 <body>
-
   <div class="card">
-    <h2>📅 GPT 일정 등록</h2>
+    <h2>📝 새로운 일정을 등록해보세요</h2>
 
-    <label>제목
-      <input type="text" id="title" placeholder="일정 제목을 입력해주세요" />
-    </label>
+    <label for="title">일정 제목</label>
+    <input type="text" id="title" placeholder="예: 회의, 외출, 약속 등" />
 
-    <label>설명
-      <input type="text" id="description" placeholder="추가 설명 (선택)" />
-    </label>
+    <label for="description">세부 설명 (선택)</label>
+    <input type="text" id="description" placeholder="자세한 내용을 입력해보세요" />
 
-    <label>날짜
-      <input type="date" id="date" />
-    </label>
+    <label for="date">날짜 선택</label>
+    <input type="date" id="date" />
 
-    <label>시작 시간
+    <label for="start">시작 시간 (선택)</label>
+    <div class="time-wrap">
       <input type="time" id="start" />
-    </label>
-
-    <label>종료 시간
-      <input type="time" id="end" />
-    </label>
-
-    <label>캘린더 선택
-      <select id="calendar">
-        <option value="">기본 캘린더</option>
+      <select id="start-option">
+        <option value="">선택안함</option>
+        <option value="default">사용</option>
       </select>
-    </label>
+    </div>
 
-    <button onclick="submitEvent()">✅ 일정 등록</button>
+    <label for="end">종료 시간 (선택)</label>
+    <div class="time-wrap">
+      <input type="time" id="end" />
+      <select id="end-option">
+        <option value="">선택안함</option>
+        <option value="default">사용</option>
+      </select>
+    </div>
+
+    <label for="calendar">캘린더 선택</label>
+    <select id="calendar">
+      <option value="">기본 캘린더</option>
+    </select>
+
+    <button onclick="submitEvent()">📥 일정 등록하기</button>
     <p id="result"></p>
+
+    <div class="calendar-preview">
+      <h3>📆 이번주 등록된 일정</h3>
+      <ul id="weekly-events">
+        <li>불러오는 중...</li>
+      </ul>
+    </div>
   </div>
 
   <script>
@@ -125,7 +183,23 @@
         });
       });
 
-    // 일정 등록 함수
+    // 주간 일정 미리보기
+    fetch(BASE_URL + "?mode=week")
+      .then(res => res.json())
+      .then(events => {
+        const list = document.getElementById("weekly-events");
+        list.innerHTML = "";
+        if (events.length === 0) {
+          list.innerHTML = "<li>이번주 일정이 없습니다.</li>";
+        } else {
+          events.forEach(e => {
+            const li = document.createElement("li");
+            li.innerText = `${e.date} - ${e.title}`;
+            list.appendChild(li);
+          });
+        }
+      });
+
     function submitEvent() {
       const title = document.getElementById("title").value;
       const description = document.getElementById("description").value;
@@ -133,13 +207,17 @@
       const start = document.getElementById("start").value;
       const end = document.getElementById("end").value;
       const calendar = document.getElementById("calendar").value;
+      const startUse = document.getElementById("start-option").value;
+      const endUse = document.getElementById("end-option").value;
 
-      if (!title || !date || !start || !end) {
-        alert("필수 항목을 입력해주세요.");
+      if (!title || !date) {
+        alert("제목과 날짜는 꼭 입력해주세요.");
         return;
       }
 
-      const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}&start=${start}&end=${end}&calendar=${encodeURIComponent(calendar)}`;
+      const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}` +
+                  `&start=${startUse === 'default' ? start : ''}&end=${endUse === 'default' ? end : ''}&calendar=${encodeURIComponent(calendar)}`;
+
       fetch(url)
         .then(res => res.text())
         .then(msg => document.getElementById("result").innerText = msg)
@@ -148,6 +226,5 @@
         });
     }
   </script>
-
 </body>
 </html>
