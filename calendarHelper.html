@@ -160,27 +160,32 @@
       });
 
     // 📌 주간 일정 불러오기
-  fetch(BASE_URL + "?mode=week")
-    .then(res => res.json())  // 이 줄에서 JSON parse 실패할 수 있음
-    .then(events => {
-      const list = document.getElementById("weekly-events");
-      list.innerHTML = "";
-        if (!events || events.length === 0) {
-        list.innerHTML = "<li>이번주 일정이 없습니다.</li>";
-        } else {
-          events.forEach(e => {
-            const li = document.createElement("li");
+    fetch(`${BASE_URL}?mode=week`)
+      .then(async res => {
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          const list = document.getElementById("weekly-events");
+          list.innerHTML = "";
+
+          if (!json || json.length === 0) {
+            list.innerHTML = "<li>이번주 일정이 없습니다.</li>";
+          } else {
+            json.forEach(e => {
+              const li = document.createElement("li");
               li.innerText = `${e.date} - ${e.title}`;
               list.appendChild(li);
-              });
+            });
           }
-    })
-  .catch(err => {
-    const list = document.getElementById("weekly-events");
-    list.innerHTML = "<li>📛 불러오기 실패</li>";
-    console.error("📛 주간 일정 불러오기 실패:", err);
-  });
-
+        } catch (err) {
+          console.error("❌ JSON 파싱 실패:", err, text);
+          document.getElementById("weekly-events").innerHTML = "<li>📛 불러오기 실패</li>";
+        }
+      })
+      .catch(err => {
+        console.error("📛 주간 일정 불러오기 실패:", err);
+        document.getElementById("weekly-events").innerHTML = "<li>📛 불러오기 실패</li>";
+      });
 
     // 📌 일정 등록 요청
     function submitEvent() {
