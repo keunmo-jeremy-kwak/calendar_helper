@@ -48,13 +48,6 @@
       font-family: inherit;
       font-size: 14px;
     }
-    .time-wrap {
-      display: flex;
-      gap: 8px;
-    }
-    .time-wrap select, .time-wrap input {
-      flex: 1;
-    }
     button {
       margin-top: 24px;
       width: 100%;
@@ -75,76 +68,40 @@
       font-size: 14px;
       text-align: center;
     }
-    .calendar-preview {
-      margin-top: 32px;
-    }
-    .calendar-preview h3 {
-      font-size: 15px;
-      margin-bottom: 8px;
-    }
-    .calendar-preview ul {
-      list-style: none;
-      padding-left: 0;
-    }
-    .calendar-preview li {
-      font-size: 13px;
-      padding: 4px 0;
-      border-bottom: 1px solid #3a3c41;
-    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>📝 새로운 일정을 등록해보세요</h2>
+    <h2>📅 새 일정을 등록해보세요</h2>
 
-    <label for="title">일정 제목</label>
+    <label for="title">어떤 일정인가요?</label>
     <input type="text" id="title" placeholder="예: 회의, 외출, 약속 등" />
 
-    <label for="description">세부 설명 (선택)</label>
+    <label for="description">메모나 설명 (선택)</label>
     <input type="text" id="description" placeholder="자세한 내용을 입력해보세요" />
 
-    <label for="date">날짜 선택</label>
+    <label for="date">날짜를 선택해주세요</label>
     <input type="date" id="date" />
 
-    <label>시작 시간 (선택)</label>
-    <div class="time-wrap">
-      <input type="time" id="start" />
-      <select id="start-option">
-        <option value="">선택안함</option>
-        <option value="default">사용</option>
-      </select>
-    </div>
+    <label for="start">시작 시간</label>
+    <input type="time" id="start" />
 
-    <label>종료 시간 (선택)</label>
-    <div class="time-wrap">
-      <input type="time" id="end" />
-      <select id="end-option">
-        <option value="">선택안함</option>
-        <option value="default">사용</option>
-      </select>
-    </div>
+    <label for="end">종료 시간</label>
+    <input type="time" id="end" />
 
-    <label for="calendar">캘린더 선택</label>
+    <label for="calendar">사용할 캘린더</label>
     <select id="calendar">
       <option value="">기본 캘린더</option>
     </select>
 
-    <button onclick="submitEvent()">📥 일정 등록하기</button>
+    <button onclick="submitEvent()">📥 새 일정 등록</button>
     <p id="result"></p>
-
-    <div class="calendar-preview">
-      <h3>📆 이번주 등록된 일정</h3>
-      <ul id="weekly-events">
-        <li>불러오는 중...</li>
-      </ul>
-    </div>
   </div>
 
   <script>
     const BASE_URL = "https://script.google.com/macros/s/AKfycbwm2XMrYY7CvRrh1NZVmjgudpv4Yl8w2iSXJS8X-mZ53MwQErx7yet1VGofgh7dOYevEQ/exec";
 
-    // 📌 캘린더 목록 불러오기
-    fetch(`${BASE_URL}?mode=list`)
+    fetch(BASE_URL + "?mode=list")
       .then(res => res.json())
       .then(data => {
         const select = document.getElementById("calendar");
@@ -154,67 +111,33 @@
           option.text = cal.name;
           select.appendChild(option);
         });
-      })
-      .catch(() => {
-        document.getElementById("calendar").innerHTML = '<option value="">📛 캘린더 불러오기 실패</option>';
       });
 
-    // 📌 주간 일정 불러오기
-    fetch(`${BASE_URL}?mode=week`)
-      .then(async res => {
-        const text = await res.text();
-        try {
-          const json = JSON.parse(text);
-          const list = document.getElementById("weekly-events");
-          list.innerHTML = "";
-
-          if (!json || json.length === 0) {
-            list.innerHTML = "<li>이번주 일정이 없습니다.</li>";
-          } else {
-            json.forEach(e => {
-              const li = document.createElement("li");
-              li.innerText = `${e.date} - ${e.title}`;
-              list.appendChild(li);
-            });
-          }
-        } catch (err) {
-          console.error("❌ JSON 파싱 실패:", err, text);
-          document.getElementById("weekly-events").innerHTML = "<li>📛 불러오기 실패</li>";
-        }
-      })
-      .catch(err => {
-        console.error("📛 주간 일정 불러오기 실패:", err);
-        document.getElementById("weekly-events").innerHTML = "<li>📛 불러오기 실패</li>";
-      });
-
-    // 📌 일정 등록 요청
     function submitEvent() {
       const title = document.getElementById("title").value;
       const description = document.getElementById("description").value;
       const date = document.getElementById("date").value;
       const start = document.getElementById("start").value;
       const end = document.getElementById("end").value;
-      const startOpt = document.getElementById("start-option").value;
-      const endOpt = document.getElementById("end-option").value;
       const calendar = document.getElementById("calendar").value;
       const result = document.getElementById("result");
 
       result.textContent = '';
 
-      if (!title || !date) {
-        result.textContent = '❗ 제목과 날짜는 필수입니다.';
+      if (!title || !date || !start || !end) {
+        result.textContent = '📛 제목, 날짜, 시간 모두 입력해주세요';
         return;
       }
 
-      const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}&start=${startOpt === 'default' ? start : ''}&end=${endOpt === 'default' ? end : ''}&calendar=${encodeURIComponent(calendar)}`;
+      const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}&start=${start}&end=${end}&calendar=${encodeURIComponent(calendar)}`;
 
       fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          result.textContent = data.message || '✅ 등록 완료';
+        .then(res => res.text())
+        .then(msg => {
+          result.textContent = msg || '✅ 일정이 등록되었어요!';
         })
         .catch(() => {
-          result.textContent = '❌ 등록 중 오류가 발생했습니다.';
+          result.textContent = '❌ 일정 등록에 실패했어요. 잠시 후 다시 시도해주세요.';
         });
     }
   </script>
