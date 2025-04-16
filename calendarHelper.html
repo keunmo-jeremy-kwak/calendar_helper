@@ -1,66 +1,214 @@
-<script>
-  const BASE_URL = "https://script.google.com/macros/s/AKfycb.../exec";
-
-  fetch(BASE_URL + "?mode=list")
-    .then(res => res.json())
-    .then(data => {
-      const select = document.getElementById("calendar");
-      data.forEach(cal => {
-        const option = document.createElement("option");
-        option.value = cal.name;
-        option.text = cal.name;
-        select.appendChild(option);
-      });
-    })
-    .catch(() => {
-      document.getElementById("calendar").innerHTML = '<option>📛 캘린더 목록 로드 실패</option>';
-    });
-
-  fetch(BASE_URL + "?mode=week")
-    .then(res => res.json())
-    .then(events => {
-      const list = document.getElementById("weekly-events");
-      list.innerHTML = "";
-      if (!events || events.length === 0) {
-        list.innerHTML = "<li>이번주 일정이 없습니다.</li>";
-      } else {
-        events.forEach(e => {
-          const li = document.createElement("li");
-          li.innerText = `${e.date} - ${e.title}`;
-          list.appendChild(li);
-        });
-      }
-    })
-    .catch(() => {
-      document.getElementById("weekly-events").innerHTML = "<li>❌ 일정 불러오기 실패</li>";
-    });
-
-  function submitEvent() {
-    const title = document.getElementById("title").value.trim();
-    const description = document.getElementById("description").value.trim();
-    const date = document.getElementById("date").value;
-    const start = document.getElementById("start").value;
-    const end = document.getElementById("end").value;
-    const calendar = document.getElementById("calendar").value;
-    const startUse = document.getElementById("start-option").value;
-    const endUse = document.getElementById("end-option").value;
-
-    if (!title || !date) {
-      alert("제목과 날짜는 필수 입력입니다.");
-      return;
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>📅 GPT 일정 등록</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #2b2d31;
+      color: #f2f3f5;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
+    .card {
+      background: #313338;
+      border-radius: 12px;
+      padding: 32px 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 420px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 24px;
+      font-weight: 600;
+      text-align: center;
+    }
+    label {
+      font-size: 13px;
+      margin-top: 16px;
+      display: block;
+      color: #b5bac1;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      background: #1e1f22;
+      color: #f2f3f5;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .time-wrap {
+      display: flex;
+      gap: 8px;
+    }
+    .time-wrap select, .time-wrap input {
+      flex: 1;
+    }
+    button {
+      margin-top: 24px;
+      width: 100%;
+      background-color: #5865f2;
+      color: white;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #4752c4;
+    }
+    #result {
+      margin-top: 16px;
+      font-size: 14px;
+      text-align: center;
+    }
+    .calendar-preview {
+      margin-top: 32px;
+    }
+    .calendar-preview h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .calendar-preview ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .calendar-preview li {
+      font-size: 13px;
+      padding: 4px 0;
+      border-bottom: 1px solid #3a3c41;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>📝 새로운 일정을 등록해보세요</h2>
 
-    const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}` +
-                `&start=${startUse === 'default' ? start : ''}&end=${endUse === 'default' ? end : ''}&calendar=${encodeURIComponent(calendar)}`;
+    <label for="title">일정 제목</label>
+    <input type="text" id="title" placeholder="예: 회의, 외출, 약속 등" />
 
-    fetch(url)
+    <label for="description">세부 설명 (선택)</label>
+    <input type="text" id="description" placeholder="자세한 내용을 입력해보세요" />
+
+    <label for="date">날짜 선택</label>
+    <input type="date" id="date" />
+
+    <label>시작 시간 (선택)</label>
+    <div class="time-wrap">
+      <input type="time" id="start" />
+      <select id="start-option">
+        <option value="">선택안함</option>
+        <option value="default">사용</option>
+      </select>
+    </div>
+
+    <label>종료 시간 (선택)</label>
+    <div class="time-wrap">
+      <input type="time" id="end" />
+      <select id="end-option">
+        <option value="">선택안함</option>
+        <option value="default">사용</option>
+      </select>
+    </div>
+
+    <label for="calendar">캘린더 선택</label>
+    <select id="calendar">
+      <option value="">기본 캘린더</option>
+    </select>
+
+    <button onclick="submitEvent()">📥 일정 등록하기</button>
+    <p id="result"></p>
+
+    <div class="calendar-preview">
+      <h3>📆 이번주 등록된 일정</h3>
+      <ul id="weekly-events">
+        <li>불러오는 중...</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = "https://script.google.com/macros/s/AKfycbwm2XMrYY7CvRrh1NZVmjgudpv4Yl8w2iSXJS8X-mZ53MwQErx7yet1VGofgh7dOYevEQ/exec";
+
+    // 📌 캘린더 목록 불러오기
+    fetch(`${BASE_URL}?mode=list`)
       .then(res => res.json())
-      .then(res => {
-        document.getElementById("result").innerText = res.message || "✅ 등록 완료!";
+      .then(data => {
+        const select = document.getElementById("calendar");
+        data.forEach(cal => {
+          const option = document.createElement("option");
+          option.value = cal.name;
+          option.text = cal.name;
+          select.appendChild(option);
+        });
       })
-      .catch(err => {
-        document.getElementById("result").innerText = "❌ 서버 오류 발생";
-        console.error("Error submitting event:", err);
+      .catch(() => {
+        document.getElementById("calendar").innerHTML = '<option value="">📛 캘린더 불러오기 실패</option>';
       });
-  }
-</script>
+
+    // 📌 주간 일정 불러오기
+    fetch(`${BASE_URL}?mode=week`)
+      .then(res => res.json())
+      .then(data => {
+        const list = document.getElementById("weekly-events");
+        list.innerHTML = '';
+        if (!data.length) {
+          list.innerHTML = '<li>이번주 일정이 없습니다.</li>';
+        } else {
+          data.forEach(event => {
+            const li = document.createElement("li");
+            li.textContent = `${event.date} - ${event.title}`;
+            list.appendChild(li);
+          });
+        }
+      })
+      .catch(() => {
+        document.getElementById("weekly-events").innerHTML = '<li>📛 불러오기 실패</li>';
+      });
+
+    // 📌 일정 등록 요청
+    function submitEvent() {
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      const date = document.getElementById("date").value;
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+      const startOpt = document.getElementById("start-option").value;
+      const endOpt = document.getElementById("end-option").value;
+      const calendar = document.getElementById("calendar").value;
+      const result = document.getElementById("result");
+
+      result.textContent = '';
+
+      if (!title || !date) {
+        result.textContent = '❗ 제목과 날짜는 필수입니다.';
+        return;
+      }
+
+      const url = `${BASE_URL}?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}&date=${date}&start=${startOpt === 'default' ? start : ''}&end=${endOpt === 'default' ? end : ''}&calendar=${encodeURIComponent(calendar)}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          result.textContent = data.message || '✅ 등록 완료';
+        })
+        .catch(() => {
+          result.textContent = '❌ 등록 중 오류가 발생했습니다.';
+        });
+    }
+  </script>
+</body>
+</html>
